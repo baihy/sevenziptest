@@ -15,6 +15,6 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Integer numberOfItemsInArchive = CompressUtils.getNumberOfItemsInArchive("/Users/baihuayang/Downloads/abc.zip");
         System.out.println(numberOfItemsInArchive);
-    }
+}
 
 }
