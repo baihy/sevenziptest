@@ -1,13 +1,17 @@
 package com.zskj.utils;
 
 import net.sf.sevenzipjbinding.*;
+import net.sf.sevenzipjbinding.impl.OutItemFactory;
 import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream;
-import net.sf.sevenzipjbinding.simple.ISimpleInArchive;
-import net.sf.sevenzipjbinding.simple.ISimpleInArchiveItem;
+import net.sf.sevenzipjbinding.impl.RandomAccessFileOutStream;
+import net.sf.sevenzipjbinding.util.ByteArrayStream;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @ProjectName: sevenziptest
@@ -23,12 +27,9 @@ public class CompressUtils {
     }
 
 
-    public static void main(String[] args) {
-        sevenZipJBindingInitCheck();
-        String archiveFile = "/Users/baihuayang/Downloads/abc.zip";
-        Integer numberOfItemsInArchive = getNumberOfItemsInArchive(archiveFile);
-        System.out.println(numberOfItemsInArchive);
-        getListItemsSimple(archiveFile);
+    public static void main(String[] args) throws Exception {
+        compressFile();
+        System.out.println("操作完成！！");
     }
 
 
@@ -79,24 +80,180 @@ public class CompressUtils {
     }
 
 
-    public static void getListItemsSimple(String archiveFile) {
-        IInArchive inArchive = getInArchive(archiveFile);
-        ISimpleInArchive simpleInterface = inArchive.getSimpleInterface();
-        try {
-            ISimpleInArchiveItem[] archiveItems = simpleInterface.getArchiveItems();
-            System.out.println(archiveItems.length);
-            if (archiveItems != null && archiveItems.length > 0) {
-                for (int i = 0; i < archiveItems.length; i++) {
-                    ISimpleInArchiveItem archiveItem = archiveItems[i];
-                    String path = archiveItem.getPath();
-                    System.out.println(path);
-                }
+    public static void createArchive(SingleItem item) throws Exception {
+        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.zip", "rw");
+        IOutCreateArchiveZip iArchiveZip = SevenZip.openOutArchiveZip();
+        // 设置压缩级别
+        iArchiveZip.setLevel(5);
+        iArchiveZip.createArchive(new RandomAccessFileOutStream(randomAccessFile), 1, new AbstractIOutCreateCallback<IOutItemZip>() {
+            @Override
+            public IOutItemZip getItemInformation(int index, OutItemFactory<IOutItemZip> outItemFactory) throws SevenZipException {
+                System.out.println("索引值是：" + index);
+                IOutItemZip outItem = outItemFactory.createOutItem();
+                outItem.setDataSize((long) item.getContent().length);
+                // 设置文件名字
+                outItem.setPropertyPath(item.getName());
+                return outItem;
             }
-        } catch (SevenZipException e) {
-            e.printStackTrace();
-        }
 
+            @Override
+            public ISequentialInStream getStream(int index) throws SevenZipException {
+                System.out.println("索引值是：" + index);
+                return new ByteArrayStream(item.getContent(), true);
+            }
+        });
+        iArchiveZip.close();
+        randomAccessFile.close();
     }
 
+    public static void compressZipFile() throws Exception {
+        List<Item> items = getItems();
+        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.zip", "rw");
+        IOutCreateArchiveZip iArchiveZip = SevenZip.openOutArchiveZip();
+        // 设置压缩级别
+        iArchiveZip.setLevel(5);
+        iArchiveZip.createArchive(new RandomAccessFileOutStream(randomAccessFile), items.size(), new AbstractIOutCreateCallback<IOutItemZip>() {
+            @Override
+            public IOutItemZip getItemInformation(int index, OutItemFactory<IOutItemZip> outItemFactory) throws SevenZipException {
+                int attr = PropID.AttributesBitMask.FILE_ATTRIBUTE_UNIX_EXTENSION;
+                IOutItemZip outItem = outItemFactory.createOutItem();
+                File file = items.get(index).getFile();
+                if (file.isFile()) {
+                    outItem.setDataSize(file.length());
+                    attr |= 0x81a4 << 16; // permissions: -rw-r--r--
+                }
+                if (file.isDirectory()) {
+                    outItem.setPropertyIsDir(true);
+                    attr |= PropID.AttributesBitMask.FILE_ATTRIBUTE_DIRECTORY;
+                    attr |= 0x81ED << 16; // permissions: drwxr-xr-x
+                }
+                outItem.setPropertyPath(items.get(index).getName());
+                outItem.setPropertyAttributes(attr);
+                return outItem;
+            }
+
+            @Override
+            public ISequentialInStream getStream(int index) throws SevenZipException {
+                RandomAccessFile file = null;
+                try {
+                    file = new RandomAccessFile(items.get(index).getFile(), "rw");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                return new RandomAccessFileInStream(file);
+            }
+        });
+        iArchiveZip.close();
+        randomAccessFile.close();
+    }
+
+    public static List<Item> getItems() {
+        List<Item> items = new ArrayList<>();
+        items.add(new Item("abc/联网审计实施专项激励制度.docx", new File("/Users/baihuayang/Downloads/aaa/联网审计实施专项激励制度.docx")));
+        items.add(new Item("abc/金审三期北京出差专项激励制度.docx", new File("/Users/baihuayang/Downloads/aaa/金审三期北京出差专项激励制度.docx")));
+        return items;
+    }
+
+
+    public static void compress7zFile() throws Exception {
+        List<Item> items = getItems();
+        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.7z", "rw");
+        IOutCreateArchive7z iArchive7z = SevenZip.openOutArchive7z();
+        // 设置压缩级别
+        iArchive7z.setLevel(5);
+        iArchive7z.setSolid(true);
+        iArchive7z.createArchive(new RandomAccessFileOutStream(randomAccessFile), items.size(), new AbstractIOutCreateCallback<IOutItem7z>() {
+            /**
+             * 注意：特定格式7z的压缩和zip的压缩getItemInformation()方法的实现不同，7z不需要相对复杂的属性属性计算，提供了一个很好的默认行为。
+             * @param index
+             * @param outItemFactory
+             * @return
+             * @throws SevenZipException
+             */
+            @Override
+            public IOutItem7z getItemInformation(int index, OutItemFactory<IOutItem7z> outItemFactory) throws SevenZipException {
+                IOutItem7z outItem = outItemFactory.createOutItem();
+                File file = items.get(index).getFile();
+                if (file.isFile()) {
+                    outItem.setDataSize(file.length());
+                }
+                if (file.isDirectory()) {
+                    outItem.setPropertyIsDir(true);
+                }
+                outItem.setPropertyPath(items.get(index).getName());
+                return outItem;
+            }
+
+            @Override
+            public ISequentialInStream getStream(int index) throws SevenZipException {
+                RandomAccessFile file = null;
+                try {
+                    file = new RandomAccessFile(items.get(index).getFile(), "rw");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                return new RandomAccessFileInStream(file);
+            }
+        });
+        iArchive7z.close();
+        randomAccessFile.close();
+    }
+
+    /**
+     * 使用通用的API实现压缩
+     *
+     * @throws Exception
+     */
+    public static void compressFile() throws Exception {
+        List<Item> items = getItems();
+        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.7z", "rw");
+        ArchiveFormat archiveFormat = ArchiveFormat.SEVEN_ZIP;
+        IOutCreateArchive<IOutItemAllFormats> iArchive = SevenZip.openOutArchive(archiveFormat);
+        // 设置默认的压缩级别
+        if (iArchive instanceof IOutFeatureSetLevel) {
+            ((IOutFeatureSetLevel) iArchive).setLevel(5);
+        }
+
+        // 设置压缩的过程中，使用最大使用多少线程，默认是是-1
+        if (iArchive instanceof IOutFeatureSetMultithreading) {
+            ((IOutFeatureSetMultithreading) iArchive).setThreadCount(2);
+        }
+
+        iArchive.createArchive(new RandomAccessFileOutStream(randomAccessFile), items.size(), new AbstractIOutCreateCallback<IOutItemAllFormats>() {
+            /**
+             * 注意：特定格式7z的压缩和zip的压缩getItemInformation()方法的实现不同，7z不需要相对复杂的属性属性计算，提供了一个很好的默认行为。
+             * @param index
+             * @param outItemFactory
+             * @return
+             * @throws SevenZipException
+             */
+            @Override
+            public IOutItemAllFormats getItemInformation(int index, OutItemFactory<IOutItemAllFormats> outItemFactory) throws SevenZipException {
+                IOutItemAllFormats outItem = outItemFactory.createOutItem();
+                File file = items.get(index).getFile();
+                if (file.isFile()) {
+                    outItem.setDataSize(file.length());
+                }
+                if (file.isDirectory()) {
+                    outItem.setPropertyIsDir(true);
+                }
+                outItem.setPropertyPath(items.get(index).getName());
+                return outItem;
+            }
+
+            @Override
+            public ISequentialInStream getStream(int index) throws SevenZipException {
+                RandomAccessFile file = null;
+                try {
+                    file = new RandomAccessFile(items.get(index).getFile(), "rw");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                return new RandomAccessFileInStream(file);
+            }
+        });
+        iArchive.close();
+        randomAccessFile.close();
+    }
 
 }
