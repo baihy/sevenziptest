@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * @ProjectName: sevenziptest
  * @packageName: com.zskj.utils
- * @Description:
+ * @Description: 新建压缩包
  * @author: huayang.bai
  * @date: 2018-12-14 16:06
  */
@@ -206,8 +206,8 @@ public class CompressUtils {
      */
     public static void compressFile() throws Exception {
         List<Item> items = getItems();
-        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.7z", "rw");
-        ArchiveFormat archiveFormat = ArchiveFormat.SEVEN_ZIP;
+        RandomAccessFile randomAccessFile = new RandomAccessFile("/Users/baihuayang/Downloads/aaa/def.zip", "rw");
+        ArchiveFormat archiveFormat = ArchiveFormat.ZIP;
         IOutCreateArchive<IOutItemAllFormats> iArchive = SevenZip.openOutArchive(archiveFormat);
         // 设置默认的压缩级别
         if (iArchive instanceof IOutFeatureSetLevel) {
