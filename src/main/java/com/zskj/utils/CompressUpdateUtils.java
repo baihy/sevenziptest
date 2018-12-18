@@ -200,7 +200,8 @@ public class CompressUpdateUtils {
                 }
                 RandomAccessFile file = new RandomAccessFile(baseDir + parent + File.separator + fName, "rw");
                 RandomAccessFileOutStream outStream = new RandomAccessFileOutStream(file);
-                ExtractOperationResult result = archiveItem.extractSlow(outStream);
+
+                ExtractOperationResult result = archiveItem.extractSlow(outStream);// 核心方法：把压缩包里面的item写入指定的输出流中
                 System.out.println(result);
             }
         }
