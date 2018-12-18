@@ -1,6 +1,7 @@
 package com.zskj.main;
 
-import com.zskj.utils.CompressUtils;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @ProjectName: sevenziptest
@@ -12,9 +13,18 @@ import com.zskj.utils.CompressUtils;
 public class Main {
 
 
-    public static void main(String[] args) throws Exception {
-        Integer numberOfItemsInArchive = CompressUtils.getNumberOfItemsInArchive("/Users/baihuayang/Downloads/abc.zip");
-        System.out.println(numberOfItemsInArchive);
-}
+    public static void main(String[] args) throws IOException {
+        String str = "/Users/baihuayang/Downloads/aaa/abc";
+        File file = new File(str);
+        File parentFile = file.getParentFile();
+        if (!parentFile.exists()) {
+            parentFile.mkdirs();
+        }
+        boolean newFile = file.createNewFile();
+        System.out.println(newFile);
+        System.out.println("判断是否是文件：" + file.isFile());
+        System.out.println("判断是否是文件夹：" + file.isDirectory());
+
+    }
 
 }
