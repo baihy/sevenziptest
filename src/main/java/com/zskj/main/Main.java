@@ -1,9 +1,9 @@
 package com.zskj.main;
 
 /**
- * @ProjectName: sevenziptest
+ * @projectName: sevenziptest
  * @packageName: com.zskj.main
- * @Description:
+ * @description:
  * @author: huayang.bai
  * @date: 2018-12-14 16:06
  */
